@@ -43,6 +43,19 @@ pattern_filter = st.sidebar.multiselect(
 
 min_score = st.sidebar.slider("Minimum Score", 0, 100, 30)
 
+st.sidebar.markdown("---")
+st.sidebar.header("Historical Mode")
+use_historical = st.sidebar.checkbox("Scan a past date")
+scan_date = None
+if use_historical:
+    from datetime import date
+    scan_date = st.sidebar.date_input(
+        "Scan Date",
+        value=date(2024, 6, 15),
+        min_value=date(2000, 1, 1),
+        max_value=date.today(),
+    )
+
 # Run button
 if st.sidebar.button("Run Scan", type="primary", use_container_width=True):
     config = load_config()
@@ -76,7 +89,7 @@ if st.sidebar.button("Run Scan", type="primary", use_container_width=True):
             status_text.text(f"{phase}: {current}/{total}")
 
     # Run the screen
-    results = run_screen(tickers, config, progress_callback=progress_callback)
+    results = run_screen(tickers, config, scan_date=scan_date, progress_callback=progress_callback)
 
     progress_bar.empty()
     status_text.empty()

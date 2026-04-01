@@ -150,7 +150,7 @@ class VCPDetector(PatternDetector):
             pattern_name="VCP",
             ticker=ticker,
             score=round(score, 1),
-            detected_date=date.today(),
+            detected_date=df.index[-1].date(),
             pivot_price=round(pivot_price, 2),
             metadata={
                 "num_contractions": len(valid_contractions),

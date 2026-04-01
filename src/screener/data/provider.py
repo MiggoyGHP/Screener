@@ -1,25 +1,52 @@
 from __future__ import annotations
 
+from datetime import date
+
 import pandas as pd
 import yfinance as yf
 
 
-def fetch_ohlcv(ticker: str, period: str = "2y") -> pd.DataFrame:
+def fetch_ohlcv(
+    ticker: str,
+    period: str = "2y",
+    start: str | date | None = None,
+    end: str | date | None = None,
+) -> pd.DataFrame:
     """Fetch OHLCV data for a single ticker. Returns DataFrame with DatetimeIndex."""
-    data = yf.download(ticker, period=period, progress=False, auto_adjust=True)
+    if start or end:
+        data = yf.download(
+            ticker,
+            start=str(start) if start else "2000-01-01",
+            end=str(end) if end else None,
+            progress=False,
+            auto_adjust=True,
+        )
+    else:
+        data = yf.download(ticker, period=period, progress=False, auto_adjust=True)
     if data.empty:
         return data
-    # yfinance sometimes returns MultiIndex columns for single tickers
     if isinstance(data.columns, pd.MultiIndex):
         data.columns = data.columns.get_level_values(0)
     return data
 
 
-def fetch_ohlcv_batch(tickers: list[str], period: str = "2y") -> dict[str, pd.DataFrame]:
+def fetch_ohlcv_batch(
+    tickers: list[str],
+    period: str = "2y",
+    start: str | date | None = None,
+    end: str | date | None = None,
+) -> dict[str, pd.DataFrame]:
     """Fetch OHLCV data for multiple tickers in a single API call."""
     if not tickers:
         return {}
-    raw = yf.download(tickers, period=period, progress=True, auto_adjust=True, group_by="ticker")
+    kwargs = dict(progress=True, auto_adjust=True, group_by="ticker")
+    if start or end:
+        kwargs["start"] = str(start) if start else "2000-01-01"
+        if end:
+            kwargs["end"] = str(end)
+    else:
+        kwargs["period"] = period
+    raw = yf.download(tickers, **kwargs)
     if raw.empty:
         return {}
     result: dict[str, pd.DataFrame] = {}
@@ -42,6 +69,10 @@ def fetch_ohlcv_batch(tickers: list[str], period: str = "2y") -> dict[str, pd.Da
     return result
 
 
-def fetch_spy(period: str = "2y") -> pd.DataFrame:
+def fetch_spy(
+    period: str = "2y",
+    start: str | date | None = None,
+    end: str | date | None = None,
+) -> pd.DataFrame:
     """Fetch SPY data for relative strength calculations."""
-    return fetch_ohlcv("SPY", period=period)
+    return fetch_ohlcv("SPY", period=period, start=start, end=end)

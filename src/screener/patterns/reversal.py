@@ -129,7 +129,7 @@ class ReversalDetector(PatternDetector):
             pattern_name="Reversal",
             ticker=ticker,
             score=round(score, 1),
-            detected_date=date.today(),
+            detected_date=df.index[-1].date(),
             pivot_price=round(float(df["High"].iloc[-5:].max()), 2),
             metadata={
                 "decline_pct": round(decline_pct, 1),

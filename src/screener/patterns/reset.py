@@ -135,7 +135,7 @@ class ResetDetector(PatternDetector):
             pattern_name="Reset",
             ticker=ticker,
             score=round(score, 1),
-            detected_date=date.today(),
+            detected_date=df.index[-1].date(),
             pivot_price=round(swing_high, 2),
             metadata={
                 "ma_touched": best_ma,

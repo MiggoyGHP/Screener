@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -100,6 +100,42 @@ def get_cached_or_fetch(ticker: str, fetch_fn, period: str = "2y") -> pd.DataFra
         if cached is not None and not cached.empty:
             return cached
     df = fetch_fn(ticker, period=period)
+    if df is not None and not df.empty:
+        save_to_cache(ticker, df)
+        return df
+    return None
+
+
+def get_cached_or_fetch_as_of(
+    ticker: str,
+    scan_date: date,
+    fetch_fn,
+) -> pd.DataFrame | None:
+    """Fetch full history and slice up to scan_date for historical screening."""
+    # Try cache first — for historical, we just need data that covers the scan_date
+    cached = load_from_cache(ticker)
+    if cached is not None and not cached.empty:
+        sliced = cached.loc[cached.index.date <= scan_date]
+        if len(sliced) >= 252:
+            return sliced
+
+    # Fetch max history (from 2000) and cache
+    df = fetch_fn(ticker, start="2000-01-01")
+    if df is None or df.empty:
+        return None
+    save_to_cache(ticker, df)
+    sliced = df.loc[df.index.date <= scan_date]
+    if sliced.empty:
+        return None
+    return sliced
+
+
+def get_full_history(ticker: str, fetch_fn) -> pd.DataFrame | None:
+    """Get the full cached history for a ticker (for forward return lookups)."""
+    cached = load_from_cache(ticker)
+    if cached is not None and not cached.empty:
+        return cached
+    df = fetch_fn(ticker, start="2000-01-01")
     if df is not None and not df.empty:
         save_to_cache(ticker, df)
         return df

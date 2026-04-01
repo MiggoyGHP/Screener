@@ -75,6 +75,12 @@ class ScoringWeights(BaseModel):
     rs_rank: float = 0.20
     volume_score: float = 0.15
     proximity_score: float = 0.15
+    ml_blend_weight: float = 0.30
+
+
+class MLConfig(BaseModel):
+    enabled: bool = False
+    min_training_samples: int = 30
 
 
 class ScoringConfig(BaseModel):
@@ -86,6 +92,7 @@ class ScreenerConfig(BaseModel):
     patterns: PatternsConfig = PatternsConfig()
     trend_template: TrendTemplateConfig = TrendTemplateConfig()
     scoring: ScoringConfig = ScoringConfig()
+    ml: MLConfig = MLConfig()
 
 
 def load_config(path: str | Path | None = None) -> ScreenerConfig:

@@ -10,6 +10,7 @@ def compute_composite_score(
     result: PatternResult,
     indicators: dict[str, Any],
     weights: ScoringWeights | None = None,
+    ml_preference: float | None = None,
 ) -> float:
     """Compute a weighted composite score for ranking detected patterns."""
     if weights is None:
@@ -41,17 +42,29 @@ def compute_composite_score(
         + volume_score * weights.volume_score
         + proximity_score * weights.proximity_score
     )
+
+    # ML preference blending
+    if ml_preference is not None:
+        blend = weights.ml_blend_weight
+        ml_score = ml_preference * 100
+        composite = composite * (1 - blend) + ml_score * blend
+
     return round(composite, 1)
 
 
 def rank_results(
     results: list[tuple[PatternResult, dict[str, Any]]],
     weights: ScoringWeights | None = None,
+    ml_predictions: dict[str, float] | None = None,
 ) -> list[tuple[PatternResult, float]]:
     """Rank a list of (PatternResult, indicators) tuples by composite score."""
     scored = []
     for result, indicators in results:
-        composite = compute_composite_score(result, indicators, weights)
+        ml_pref = None
+        if ml_predictions:
+            key = f"{result.ticker}_{result.pattern_name}"
+            ml_pref = ml_predictions.get(key)
+        composite = compute_composite_score(result, indicators, weights, ml_preference=ml_pref)
         scored.append((result, composite))
     scored.sort(key=lambda x: x[1], reverse=True)
     return scored

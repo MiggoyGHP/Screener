@@ -132,7 +132,7 @@ class CoilDetector(PatternDetector):
             pattern_name="Coil",
             ticker=ticker,
             score=round(score, 1),
-            detected_date=date.today(),
+            detected_date=df.index[-1].date(),
             pivot_price=round(box_high, 2),
             metadata={
                 "box_high": round(box_high, 2),
