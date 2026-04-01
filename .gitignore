@@ -7,5 +7,5 @@ build/
 data/
 .env
 *.pyc
-.streamlit/
+.streamlit/secrets.toml
 .claude/
