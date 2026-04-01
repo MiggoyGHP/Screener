@@ -143,7 +143,6 @@ class ResetDetector(PatternDetector):
                 "volume_contracted": volume_contracted,
                 "bounce_volume": bounce_volume,
                 "bouncing": bouncing,
-                "bars_after_touch": abs(best_touch_day),
             },
             annotations=[
                 {"type": "hline", "price": swing_high, "label": "Swing High"},

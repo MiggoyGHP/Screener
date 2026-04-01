@@ -46,6 +46,9 @@ def make_macd_addplots(indicators: dict[str, Any], df: pd.DataFrame) -> list:
     signal_aligned = macd_signal.reindex(df.index)
     hist_aligned = macd_hist.reindex(df.index)
 
+    # Zero line
+    zero_line = pd.Series(0.0, index=df.index)
+
     # TradingView-style 4-color histogram based on direction
     prev = hist_aligned.shift(1)
     pos_rising = hist_aligned.where((hist_aligned >= 0) & (hist_aligned >= prev), 0)
@@ -54,6 +57,7 @@ def make_macd_addplots(indicators: dict[str, Any], df: pd.DataFrame) -> list:
     neg_rising = hist_aligned.where((hist_aligned < 0) & (hist_aligned > prev), 0)
 
     return [
+        mpf.make_addplot(zero_line, panel=2, color="gray", width=0.5, linestyle="--"),
         mpf.make_addplot(macd_aligned, panel=2, color="#2196F3", width=0.8, ylabel="MACD"),
         mpf.make_addplot(signal_aligned, panel=2, color="#FF9800", width=0.8),
         mpf.make_addplot(pos_rising, panel=2, type="bar", color="#26A69A", width=0.7),

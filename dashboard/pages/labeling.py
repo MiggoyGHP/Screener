@@ -46,17 +46,6 @@ def _lookback_for_pattern(result):
     return {"VCP": 70, "Reset": 50, "Reversal": 80}.get(result.pattern_name, 70)
 
 
-def _trim_after_setup(df, result):
-    """Remove bars after the setup point to prevent hindsight bias."""
-    trim = 0
-    if result.pattern_name == "Reset":
-        trim = max(result.metadata.get("bars_after_touch", 0) - 1, 0)
-    elif result.pattern_name == "Reversal":
-        trim = max(result.metadata.get("bars_since_trough", 0) - 3, 0)
-    if trim > 0:
-        return df.iloc[:-trim]
-    return df
-
 
 st.title("Rate Charts")
 st.markdown("Charts are shown one at a time. Rate each one 1-5 stars, then move on.")
@@ -85,6 +74,10 @@ def _generate_batch(n: int = 20):
             result, composite, indicators = results[0]
             df = get_cached_or_fetch_as_of(ticker, scan_date, fetch_ohlcv)
             if df is None or df.empty:
+                continue
+            if float(df["Close"].iloc[-1]) < 15.0:
+                continue
+            if float(df["Volume"].iloc[-1]) < 1_000_000:
                 continue
 
             batch.append({
@@ -147,9 +140,8 @@ if "rate_batch" in st.session_state and st.session_state["rate_batch"]:
 
         st.markdown(f"**Chart {idx + 1} of {len(batch)}**  |  {result.ticker} - {result.pattern_name}  |  {item['scan_date']}")
 
-        # Render chart — trim post-setup bars to prevent hindsight bias
-        chart_df = _trim_after_setup(df, result)
-        fig = create_pattern_chart(chart_df, result, indicators, lookback_days=_lookback_for_pattern(result))
+        # Render chart — focused lookback, last candle = scan_date
+        fig = create_pattern_chart(df, result, indicators, lookback_days=_lookback_for_pattern(result))
         st.pyplot(fig)
         plt.close(fig)
 
