@@ -1,0 +1,60 @@
+universe:
+  min_price: 15.0
+  min_avg_volume: 1000000
+  avg_volume_period: 10
+  min_market_cap: 500000000  # $500M
+  min_history_days: 252
+
+patterns:
+  vcp:
+    enabled: true
+    lookback_days: 180
+    min_contractions: 2
+    max_contractions: 5
+    contraction_decay: 0.65
+    volume_decay: 0.85
+    min_base_depth: 10
+    max_base_depth: 50
+    pivot_proximity: 0.03
+
+  reversal:
+    enabled: true
+    min_downtrend_days: 60
+    decline_threshold: -20
+    volume_expansion: 1.5
+    ma_reclaim_window: 10
+    min_score: 40
+
+  reset:
+    enabled: true
+    ma_targets:
+      - ema_10
+      - ema_21
+      - sma_50
+    touch_tolerance: 0.015
+    pullback_vol_ratio: 0.7
+    bounce_vol_ratio: 1.2
+    max_pullback_days: 20
+    min_uptrend_days: 50
+
+  coil:
+    enabled: true
+    min_box_days: 10
+    max_box_days: 45
+    atr_contraction: 0.6
+    box_range_max: 15
+    box_range_min: 2
+    volume_dry_pct: 0.7
+
+trend_template:
+  sma_200_uptrend_days: 20
+  pct_above_52w_low: 25
+  pct_within_52w_high: 25
+  rs_rank_threshold: 70
+
+scoring:
+  weights:
+    pattern_score: 0.50
+    rs_rank: 0.20
+    volume_score: 0.15
+    proximity_score: 0.15
