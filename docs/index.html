@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Pattern Screener</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            line-height: 1.6;
+        }
+        .hero {
+            text-align: center;
+            padding: 80px 20px 60px;
+            background: linear-gradient(135deg, #161b22 0%, #0d1117 100%);
+            border-bottom: 1px solid #21262d;
+        }
+        .hero h1 {
+            font-size: 2.8rem;
+            color: #f0f6fc;
+            margin-bottom: 16px;
+        }
+        .hero p {
+            font-size: 1.2rem;
+            color: #8b949e;
+            max-width: 700px;
+            margin: 0 auto 32px;
+        }
+        .badges { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+        .badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .badge-green { background: #238636; color: #fff; }
+        .badge-blue { background: #1f6feb; color: #fff; }
+        .badge-purple { background: #8957e5; color: #fff; }
+        .badge-orange { background: #d29922; color: #fff; }
+        .container { max-width: 1100px; margin: 0 auto; padding: 60px 20px; }
+        .section-title {
+            font-size: 1.8rem;
+            color: #f0f6fc;
+            margin-bottom: 32px;
+            text-align: center;
+        }
+        .patterns {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 24px;
+            margin-bottom: 60px;
+        }
+        .pattern-card {
+            background: #161b22;
+            border: 1px solid #21262d;
+            border-radius: 12px;
+            padding: 28px;
+            transition: border-color 0.2s;
+        }
+        .pattern-card:hover { border-color: #58a6ff; }
+        .pattern-card h3 { color: #58a6ff; margin-bottom: 12px; font-size: 1.2rem; }
+        .pattern-card p { color: #8b949e; font-size: 0.95rem; }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-bottom: 60px;
+        }
+        .feature { display: flex; gap: 16px; align-items: flex-start; }
+        .feature-icon {
+            font-size: 1.5rem;
+            min-width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #21262d;
+            border-radius: 8px;
+        }
+        .feature h4 { color: #f0f6fc; margin-bottom: 4px; }
+        .feature p { color: #8b949e; font-size: 0.9rem; }
+        .install {
+            background: #161b22;
+            border: 1px solid #21262d;
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 60px;
+        }
+        .install h2 { color: #f0f6fc; margin-bottom: 20px; }
+        pre {
+            background: #0d1117;
+            border: 1px solid #21262d;
+            border-radius: 8px;
+            padding: 16px;
+            overflow-x: auto;
+            font-size: 0.9rem;
+            color: #c9d1d9;
+            margin-bottom: 12px;
+        }
+        code { font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace; }
+        .cta {
+            text-align: center;
+            padding: 60px 20px;
+            border-top: 1px solid #21262d;
+        }
+        .cta a {
+            display: inline-block;
+            padding: 14px 32px;
+            background: #238636;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        .cta a:hover { background: #2ea043; }
+        .stack {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 60px;
+        }
+        .stack-item {
+            background: #161b22;
+            border: 1px solid #21262d;
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-size: 0.9rem;
+            color: #c9d1d9;
+        }
+    </style>
+</head>
+<body>
+    <div class="hero">
+        <h1>Stock Pattern Screener</h1>
+        <p>Algorithmic detection of swing trading setups — VCPs, Reversals, Resets, and Coils — with Relative Strength filtering and interactive Streamlit dashboard.</p>
+        <div class="badges">
+            <span class="badge badge-green">Python 3.11+</span>
+            <span class="badge badge-blue">Streamlit Dashboard</span>
+            <span class="badge badge-purple">RS Line Integration</span>
+            <span class="badge badge-orange">Free Market Data</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2 class="section-title">Detected Patterns</h2>
+        <div class="patterns">
+            <div class="pattern-card">
+                <h3>VCP</h3>
+                <p>Volatility Contraction Pattern (Minervini / Qullamaggi). Detects tightening price contractions with volume dry-up. Requires full Trend Template pass.</p>
+            </div>
+            <div class="pattern-card">
+                <h3>Reversal</h3>
+                <p>Stage 1 to Stage 2 transition. Identifies stocks breaking out of prolonged downtrends with trendline breaks, MA reclaims, and volume confirmation.</p>
+            </div>
+            <div class="pattern-card">
+                <h3>Reset</h3>
+                <p>Pullback to moving average in an uptrend. Detects orderly pullbacks to the 10 EMA, 21 EMA, or 50 SMA with volume contraction and bounce.</p>
+            </div>
+            <div class="pattern-card">
+                <h3>Coil / Darvas Box</h3>
+                <p>Tight price consolidation with ATR contraction and volume dry-up. Identifies stocks coiling in a narrow range, ready to break out.</p>
+            </div>
+        </div>
+
+        <h2 class="section-title">Features</h2>
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">RS</div>
+                <div>
+                    <h4>Relative Strength Line</h4>
+                    <p>Stock vs SPY comparison with RS ranking, new-high detection, and chart overlay. Top 30% filter for VCPs.</p>
+                </div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">TT</div>
+                <div>
+                    <h4>Minervini Trend Template</h4>
+                    <p>8-criteria Stage 2 uptrend filter. Price vs MAs, MA alignment, 52-week position, and RS rank.</p>
+                </div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">SC</div>
+                <div>
+                    <h4>Composite Scoring</h4>
+                    <p>Weighted scoring: pattern quality (50%), RS rank (20%), volume (15%), pivot proximity (15%). Ranked results.</p>
+                </div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">CH</div>
+                <div>
+                    <h4>Interactive Charts</h4>
+                    <p>Candlestick charts with MA overlays, volume, RS line panel, and pattern annotations. Visual confirmation built in.</p>
+                </div>
+            </div>
+        </div>
+
+        <h2 class="section-title">Tech Stack</h2>
+        <div class="stack">
+            <span class="stack-item">Python</span>
+            <span class="stack-item">pandas</span>
+            <span class="stack-item">numpy</span>
+            <span class="stack-item">yfinance</span>
+            <span class="stack-item">mplfinance</span>
+            <span class="stack-item">matplotlib</span>
+            <span class="stack-item">Streamlit</span>
+            <span class="stack-item">Pydantic</span>
+            <span class="stack-item">SQLite</span>
+            <span class="stack-item">scipy</span>
+        </div>
+
+        <div class="install">
+            <h2>Quick Start</h2>
+            <pre><code>git clone https://github.com/MiggoyGHP/Screener.git
+cd Screener
+pip install -e .</code></pre>
+            <pre><code>cd dashboard
+streamlit run app.py</code></pre>
+            <p style="margin-top: 16px; color: #8b949e;">Three dashboard pages: <strong>Screener Results</strong> (full market scan), <strong>Pattern Explorer</strong> (single ticker deep-dive), <strong>Parameter Tuner</strong> (adjust detection thresholds).</p>
+        </div>
+    </div>
+
+    <div class="cta">
+        <a href="https://github.com/MiggoyGHP/Screener">View on GitHub</a>
+    </div>
+</body>
+</html>
