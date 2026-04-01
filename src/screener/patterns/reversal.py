@@ -140,6 +140,7 @@ class ReversalDetector(PatternDetector):
                 "volume_confirmed": volume_confirmed,
                 "stage_transition": stage_transition,
                 "high_vol_days": high_vol_days,
+                "bars_since_trough": bars_since_trough,
             },
             annotations=[],
         )

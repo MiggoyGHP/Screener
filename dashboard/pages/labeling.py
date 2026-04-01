@@ -46,6 +46,18 @@ def _lookback_for_pattern(result):
     return {"VCP": 70, "Reset": 50, "Reversal": 80}.get(result.pattern_name, 70)
 
 
+def _trim_to_setup(df, result):
+    """Trim df so the last candle is at/near the setup trigger point."""
+    trim = 0
+    if result.pattern_name == "Reset":
+        trim = result.metadata.get("bars_after_touch", 0)
+    elif result.pattern_name == "Reversal":
+        trim = max(result.metadata.get("bars_since_trough", 0) - 2, 0)
+    if trim > 0 and trim < len(df):
+        return df.iloc[:-trim]
+    return df
+
+
 
 st.title("Rate Charts")
 st.markdown("Charts are shown one at a time. Rate each one 1-5 stars, then move on.")
@@ -140,9 +152,10 @@ if "rate_batch" in st.session_state and st.session_state["rate_batch"]:
 
         st.markdown(f"**Chart {idx + 1} of {len(batch)}**  |  {result.ticker} - {result.pattern_name}  |  {item['scan_date']}")
 
-        # Render chart — focused lookback, last candle = scan_date
-        fig = create_pattern_chart(df, result, indicators, lookback_days=_lookback_for_pattern(result))
-        st.pyplot(fig)
+        # Render chart — trim to setup point, focused lookback
+        chart_df = _trim_to_setup(df, result)
+        fig = create_pattern_chart(chart_df, result, indicators, lookback_days=_lookback_for_pattern(result))
+        st.pyplot(fig, use_container_width=True)
         plt.close(fig)
 
         # Star rating — 5 buttons in a row
