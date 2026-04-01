@@ -38,7 +38,7 @@ class ReversalConfig(BaseModel):
 
 class ResetConfig(BaseModel):
     enabled: bool = True
-    ma_targets: list[str] = ["ema_10", "ema_21", "sma_50"]
+    ma_targets: list[str] = ["ema_10", "ema_20", "sma_50"]
     touch_tolerance: float = 0.015
     pullback_vol_ratio: float = 0.7
     bounce_vol_ratio: float = 1.2

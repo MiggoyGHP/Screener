@@ -42,10 +42,10 @@ class ResetDetector(PatternDetector):
         # Step 2: Find pullback to MA
         ma_map = {
             "ema_10": indicators.get("ema_10"),
-            "ema_21": indicators.get("ema_21"),
+            "ema_20": indicators.get("ema_20"),
             "sma_50": indicators.get("sma_50"),
         }
-        ma_targets = p.get("ma_targets", ["ema_10", "ema_21", "sma_50"])
+        ma_targets = p.get("ma_targets", ["ema_10", "ema_20", "sma_50"])
         max_pb_days = p.get("max_pullback_days", 20)
         tolerance = p.get("touch_tolerance", 0.015)
 
@@ -109,7 +109,7 @@ class ResetDetector(PatternDetector):
 
         # Step 6: Score
         score = 0.0
-        ma_scores = {"ema_10": 30, "ema_21": 25, "sma_50": 15}
+        ma_scores = {"ema_10": 30, "ema_20": 25, "sma_50": 15}
         score += ma_scores.get(best_ma, 10)
 
         if volume_contracted:
@@ -143,6 +143,7 @@ class ResetDetector(PatternDetector):
                 "volume_contracted": volume_contracted,
                 "bounce_volume": bounce_volume,
                 "bouncing": bouncing,
+                "bars_after_touch": abs(best_touch_day),
             },
             annotations=[
                 {"type": "hline", "price": swing_high, "label": "Swing High"},

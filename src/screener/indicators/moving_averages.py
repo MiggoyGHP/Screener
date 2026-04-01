@@ -20,7 +20,7 @@ def compute_all_mas(df: pd.DataFrame) -> dict[str, pd.Series]:
     close = df["Close"]
     return {
         "ema_10": ema(close, 10),
-        "ema_21": ema(close, 21),
+        "ema_20": ema(close, 20),
         "ema_50": ema(close, 50),
         "sma_50": sma(close, 50),      # kept for Trend Template
         "sma_150": sma(close, 150),     # kept for Trend Template

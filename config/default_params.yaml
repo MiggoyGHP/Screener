@@ -29,7 +29,7 @@ patterns:
     enabled: true
     ma_targets:
       - ema_10
-      - ema_21
+      - ema_20
       - sma_50
     touch_tolerance: 0.015
     pullback_vol_ratio: 0.7

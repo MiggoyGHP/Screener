@@ -14,7 +14,7 @@ def make_ma_addplots(indicators: dict[str, Any], df: pd.DataFrame) -> list:
     plots = []
     ma_styles = {
         "ema_10": {"color": "#2196F3", "width": 0.8},   # blue
-        "ema_21": {"color": "#F44336", "width": 0.8},   # red
+        "ema_20": {"color": "#F44336", "width": 0.8},   # red
         "ema_50": {"color": "#4CAF50", "width": 1.0},   # green
         "ema_200": {"color": "#212121", "width": 1.2},  # black
     }
@@ -46,17 +46,20 @@ def make_macd_addplots(indicators: dict[str, Any], df: pd.DataFrame) -> list:
     signal_aligned = macd_signal.reindex(df.index)
     hist_aligned = macd_hist.reindex(df.index)
 
-    # Color histogram bars green/red
-    hist_pos = hist_aligned.copy()
-    hist_neg = hist_aligned.copy()
-    hist_pos[hist_pos < 0] = 0
-    hist_neg[hist_neg > 0] = 0
+    # TradingView-style 4-color histogram based on direction
+    prev = hist_aligned.shift(1)
+    pos_rising = hist_aligned.where((hist_aligned >= 0) & (hist_aligned >= prev), 0)
+    pos_falling = hist_aligned.where((hist_aligned >= 0) & (hist_aligned < prev), 0)
+    neg_falling = hist_aligned.where((hist_aligned < 0) & (hist_aligned <= prev), 0)
+    neg_rising = hist_aligned.where((hist_aligned < 0) & (hist_aligned > prev), 0)
 
     return [
         mpf.make_addplot(macd_aligned, panel=2, color="#2196F3", width=0.8, ylabel="MACD"),
         mpf.make_addplot(signal_aligned, panel=2, color="#FF9800", width=0.8),
-        mpf.make_addplot(hist_pos, panel=2, type="bar", color="#26A69A", width=0.7),
-        mpf.make_addplot(hist_neg, panel=2, type="bar", color="#EF5350", width=0.7),
+        mpf.make_addplot(pos_rising, panel=2, type="bar", color="#26A69A", width=0.7),
+        mpf.make_addplot(pos_falling, panel=2, type="bar", color="#B2DFDB", width=0.7),
+        mpf.make_addplot(neg_falling, panel=2, type="bar", color="#EF5350", width=0.7),
+        mpf.make_addplot(neg_rising, panel=2, type="bar", color="#FFCDD2", width=0.7),
     ]
 
 

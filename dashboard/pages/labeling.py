@@ -39,6 +39,25 @@ from screener.ml.features import extract_features
 from screener.ml.trainer import PreferenceModel
 
 
+def _lookback_for_pattern(result):
+    """Focused lookback window per pattern type for labeling."""
+    if result.pattern_name == "Coil":
+        return result.metadata.get("box_days", 30) + 25
+    return {"VCP": 70, "Reset": 50, "Reversal": 80}.get(result.pattern_name, 70)
+
+
+def _trim_after_setup(df, result):
+    """Remove bars after the setup point to prevent hindsight bias."""
+    trim = 0
+    if result.pattern_name == "Reset":
+        trim = max(result.metadata.get("bars_after_touch", 0) - 1, 0)
+    elif result.pattern_name == "Reversal":
+        trim = max(result.metadata.get("bars_since_trough", 0) - 3, 0)
+    if trim > 0:
+        return df.iloc[:-trim]
+    return df
+
+
 st.title("Rate Charts")
 st.markdown("Charts are shown one at a time. Rate each one 1-5 stars, then move on.")
 
@@ -87,6 +106,7 @@ counts = get_label_counts()
 st.sidebar.metric("Charts Rated", counts["total"])
 if counts["total"] > 0:
     st.sidebar.metric("Avg Rating", f"{counts['avg_rating']}/5")
+batch_size = st.sidebar.slider("Batch Size", 10, 200, 50)
 st.sidebar.markdown("---")
 
 if counts["total"] >= 30:
@@ -105,7 +125,7 @@ else:
 # Load or generate batch
 if st.button("Load Charts to Rate", type="primary", use_container_width=True):
     with st.spinner("Finding setups across random tickers and dates..."):
-        batch = _generate_batch(20)
+        batch = _generate_batch(batch_size)
     if batch:
         st.session_state["rate_batch"] = batch
         st.session_state["rate_idx"] = 0
@@ -127,8 +147,9 @@ if "rate_batch" in st.session_state and st.session_state["rate_batch"]:
 
         st.markdown(f"**Chart {idx + 1} of {len(batch)}**  |  {result.ticker} - {result.pattern_name}  |  {item['scan_date']}")
 
-        # Render chart
-        fig = create_pattern_chart(df, result, indicators)
+        # Render chart — trim post-setup bars to prevent hindsight bias
+        chart_df = _trim_after_setup(df, result)
+        fig = create_pattern_chart(chart_df, result, indicators, lookback_days=_lookback_for_pattern(result))
         st.pyplot(fig)
         plt.close(fig)
 

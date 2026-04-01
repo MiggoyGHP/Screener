@@ -69,7 +69,7 @@ class ReversalDetector(PatternDetector):
             trendline_broken = float(df["Close"].iloc[-1]) > projected
 
         # Step 3: MA reclaim
-        ema_21 = indicators["ema_21"]
+        ema_20 = indicators["ema_20"]
         sma_50 = indicators["sma_50"]
         reclaim_window = p.get("ma_reclaim_window", 10)
 
@@ -77,8 +77,8 @@ class ReversalDetector(PatternDetector):
         reclaimed_50sma = False
 
         for i in range(-min(reclaim_window, len(df) - 1), 0):
-            if float(df["Close"].iloc[i]) > float(ema_21.iloc[i]):
-                if float(df["Close"].iloc[i - 1]) <= float(ema_21.iloc[i - 1]):
+            if float(df["Close"].iloc[i]) > float(ema_20.iloc[i]):
+                if float(df["Close"].iloc[i - 1]) <= float(ema_20.iloc[i - 1]):
                     reclaimed_21ema = True
                     break
 
@@ -140,6 +140,7 @@ class ReversalDetector(PatternDetector):
                 "volume_confirmed": volume_confirmed,
                 "stage_transition": stage_transition,
                 "high_vol_days": high_vol_days,
+                "bars_since_trough": bars_since_trough,
             },
             annotations=[],
         )
