@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-import pandas as pd
 
 from screener.ml.features import FEATURE_NAMES
 from screener.ml.labels import get_all_labels
@@ -23,8 +22,8 @@ class PreferenceModel:
         self.metrics: dict[str, Any] = {}
 
     def train(self) -> dict[str, Any]:
-        """Train on all labeled data. Returns metrics dict."""
-        from sklearn.ensemble import RandomForestClassifier
+        """Train on all labeled data (1-5 star ratings). Uses regression."""
+        from sklearn.ensemble import RandomForestRegressor
         from sklearn.model_selection import cross_val_score
 
         labels_data = get_all_labels()
@@ -34,7 +33,6 @@ class PreferenceModel:
                 "n_samples": len(labels_data),
             }
 
-        # Build feature matrix
         rows = []
         targets = []
         for entry in labels_data:
@@ -52,13 +50,10 @@ class PreferenceModel:
             }
 
         X = np.array(rows, dtype=float)
-        y = np.array(targets, dtype=int)
-
-        # Handle NaN
+        y = np.array(targets, dtype=float)
         X = np.nan_to_num(X, nan=0.0)
 
-        # Train
-        self.model = RandomForestClassifier(
+        self.model = RandomForestRegressor(
             n_estimators=100,
             max_depth=5,
             min_samples_leaf=5,
@@ -66,39 +61,34 @@ class PreferenceModel:
         )
         self.model.fit(X, y)
 
-        # Cross-validation
-        cv_scores = cross_val_score(self.model, X, y, cv=min(5, len(set(y))), scoring="accuracy")
+        # Cross-validation (R2 score)
+        cv_scores = cross_val_score(self.model, X, y, cv=min(5, len(rows)), scoring="r2")
 
-        # Feature importance
         importances = dict(zip(self.feature_names, self.model.feature_importances_))
         importances = dict(sorted(importances.items(), key=lambda x: x[1], reverse=True))
 
         self.is_trained = True
         self.metrics = {
-            "accuracy": round(float(cv_scores.mean()) * 100, 1),
-            "accuracy_std": round(float(cv_scores.std()) * 100, 1),
+            "r2_score": round(float(cv_scores.mean()), 3),
+            "r2_std": round(float(cv_scores.std()), 3),
             "n_samples": len(rows),
-            "n_good": int(sum(y)),
-            "n_bad": int(len(y) - sum(y)),
+            "avg_rating": round(float(y.mean()), 2),
             "feature_importance": importances,
         }
 
         self.save()
         return self.metrics
 
-    def predict_proba(self, features: dict[str, float]) -> float:
-        """Return probability that this setup is 'good' (0.0 to 1.0)."""
+    def predict(self, features: dict[str, float]) -> float:
+        """Predict a 1-5 star rating for this setup. Returns 0-1 normalized."""
         if not self.is_trained or self.model is None:
             return 0.5
         row = [features.get(name, 0.0) for name in self.feature_names]
         X = np.array([row], dtype=float)
         X = np.nan_to_num(X, nan=0.0)
-        proba = self.model.predict_proba(X)
-        # Find index of class 1
-        classes = list(self.model.classes_)
-        if 1 in classes:
-            return float(proba[0][classes.index(1)])
-        return 0.5
+        pred = float(self.model.predict(X)[0])
+        # Normalize 1-5 to 0-1
+        return max(0.0, min(1.0, (pred - 1) / 4))
 
     def save(self) -> None:
         MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)

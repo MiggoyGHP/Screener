@@ -9,7 +9,7 @@ from tqdm import tqdm
 from screener.config import ScreenerConfig, load_config
 from screener.data.cache import get_cached_or_fetch, get_cached_or_fetch_as_of
 from screener.data.provider import fetch_ohlcv, fetch_spy
-from screener.indicators.moving_averages import compute_all_mas
+from screener.indicators.moving_averages import compute_all_mas, compute_macd, is_macd_corrected
 from screener.indicators.relative_strength import (
     compute_rs_indicators,
     compute_rs_rankings,
@@ -32,12 +32,15 @@ def compute_indicators(
 ) -> dict[str, Any]:
     """Compute all indicators for a single stock."""
     mas = compute_all_mas(df)
+    macd = compute_macd(df)
     vol = compute_volume_indicators(df)
     atr_ind = compute_atr_indicators(df)
     rs = compute_rs_indicators(df["Close"], spy_close)
 
     indicators: dict[str, Any] = {}
     indicators.update(mas)
+    indicators.update(macd)
+    indicators["macd_corrected"] = is_macd_corrected(macd)
     indicators.update(vol)
     indicators.update(atr_ind)
     indicators.update(rs)

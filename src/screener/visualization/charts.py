@@ -13,6 +13,7 @@ from screener.patterns.base import PatternResult
 from screener.visualization.overlays import (
     make_annotation_hlines,
     make_ma_addplots,
+    make_macd_addplots,
     make_rs_addplot,
 )
 
@@ -47,6 +48,7 @@ def create_pattern_chart(
     # Build addplots
     addplots = []
     addplots.extend(make_ma_addplots(indicators, chart_df))
+    addplots.extend(make_macd_addplots(indicators, chart_df))
     addplots.extend(make_rs_addplot(indicators, chart_df))
 
     # Horizontal lines for annotations
@@ -68,7 +70,7 @@ def create_pattern_chart(
         "style": CHART_STYLE,
         "addplot": addplots if addplots else None,
         "title": title,
-        "figsize": (14, 8),
+        "figsize": (14, 10),
         "returnfig": True,
         "warn_too_much_data": 9999,
     }

@@ -39,7 +39,7 @@ def save_label(
     chart_path: str | None = None,
     score: float = 0.0,
 ) -> int:
-    """Save a label (1=good, 0=bad). Returns the label ID."""
+    """Save a label (1-5 stars). Returns the label ID."""
     conn = _get_conn()
     cursor = conn.execute(
         """INSERT INTO labels (ticker, pattern_name, scan_date, label, features_json, chart_path, score, created_at)
@@ -67,40 +67,33 @@ def get_all_labels() -> list[dict[str, Any]]:
         "SELECT id, ticker, pattern_name, scan_date, label, features_json, chart_path, score, created_at FROM labels ORDER BY created_at DESC"
     ).fetchall()
     conn.close()
-    result = []
-    for row in rows:
-        features = json.loads(row[5]) if row[5] else {}
-        result.append({
-            "id": row[0],
-            "ticker": row[1],
-            "pattern_name": row[2],
-            "scan_date": row[3],
-            "label": row[4],
-            "features": features,
-            "chart_path": row[6],
-            "score": row[7],
-            "created_at": row[8],
-        })
-    return result
+    return [
+        {
+            "id": r[0], "ticker": r[1], "pattern_name": r[2], "scan_date": r[3],
+            "label": r[4], "features": json.loads(r[5]) if r[5] else {},
+            "chart_path": r[6], "score": r[7], "created_at": r[8],
+        }
+        for r in rows
+    ]
 
 
 def get_label_counts() -> dict[str, int]:
     conn = _get_conn()
-    good = conn.execute("SELECT COUNT(*) FROM labels WHERE label = 1").fetchone()[0]
-    bad = conn.execute("SELECT COUNT(*) FROM labels WHERE label = 0").fetchone()[0]
+    total = conn.execute("SELECT COUNT(*) FROM labels").fetchone()[0]
+    avg = conn.execute("SELECT AVG(label) FROM labels").fetchone()[0] or 0
     conn.close()
-    return {"good": good, "bad": bad, "total": good + bad}
-
-
-def flip_label(label_id: int) -> None:
-    conn = _get_conn()
-    conn.execute("UPDATE labels SET label = CASE WHEN label = 1 THEN 0 ELSE 1 END WHERE id = ?", (label_id,))
-    conn.commit()
-    conn.close()
+    return {"total": total, "avg_rating": round(avg, 1)}
 
 
 def delete_label(label_id: int) -> None:
     conn = _get_conn()
     conn.execute("DELETE FROM labels WHERE id = ?", (label_id,))
+    conn.commit()
+    conn.close()
+
+
+def update_label(label_id: int, new_rating: int) -> None:
+    conn = _get_conn()
+    conn.execute("UPDATE labels SET label = ? WHERE id = ?", (new_rating, label_id))
     conn.commit()
     conn.close()

@@ -1,200 +1,150 @@
 from __future__ import annotations
 
+import random
 import sys
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 import streamlit as st
-import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import pandas as pd
 
 from screener.config import load_config
-from screener.data.cache import get_cached_or_fetch, get_cached_or_fetch_as_of
+from screener.data.cache import get_cached_or_fetch_as_of
 from screener.data.provider import fetch_ohlcv
+from screener.data.universe import get_sp500_tickers
 from screener.pipeline.screener import scan_single
 from screener.visualization.charts import create_pattern_chart
-from screener.ml.labels import save_label, get_all_labels, get_label_counts, flip_label, delete_label
+from screener.ml.labels import save_label, get_all_labels, get_label_counts
 from screener.ml.features import extract_features
 from screener.ml.trainer import PreferenceModel
 
 
-st.title("ML Labeling & Training")
+st.title("Rate Charts")
+st.markdown("Charts are shown one at a time. Rate each one 1-5 stars, then move on.")
 
-tab1, tab2, tab3 = st.tabs(["Label Setups", "Review Labels", "Train Model"])
+# ─── Generate a batch of charts to rate ───
 
-# ─── Tab 1: Label setups ───
-with tab1:
-    st.subheader("Label Detected Setups")
-    ticker = st.text_input("Ticker", "AAPL", key="label_ticker").strip().upper()
+def _generate_batch(n: int = 20):
+    """Scan random tickers on random historical dates to build a batch of charts."""
+    config = load_config()
+    tickers = get_sp500_tickers()
+    if not tickers:
+        return []
 
-    use_hist = st.checkbox("Use historical date", key="label_hist")
-    scan_date = None
-    if use_hist:
-        scan_date = st.date_input("Scan Date", value=date(2024, 6, 15), key="label_date")
+    batch = []
+    attempts = 0
+    max_attempts = n * 8
 
-    if st.button("Scan for Labeling", type="primary"):
-        config = load_config()
-        results = scan_single(ticker, config, scan_date=scan_date)
+    while len(batch) < n and attempts < max_attempts:
+        attempts += 1
+        ticker = random.choice(tickers)
+        # Random date between 2015 and 2025
+        days_back = random.randint(100, 3650)
+        scan_date = date.today() - timedelta(days=days_back)
 
-        if results:
-            st.session_state["label_results"] = results
-            st.session_state["label_ticker"] = ticker
-            st.session_state["label_scan_date"] = str(scan_date) if scan_date else str(date.today())
-            st.session_state["label_idx"] = 0
+        try:
+            results = scan_single(ticker, config, scan_date=scan_date)
+            if not results:
+                continue
 
-            if scan_date:
-                df = get_cached_or_fetch_as_of(ticker, scan_date, fetch_ohlcv)
-            else:
-                df = get_cached_or_fetch(ticker, fetch_ohlcv, period="2y")
-            st.session_state["label_df"] = df
-        else:
-            st.warning(f"No patterns found for {ticker}.")
+            result, composite, indicators = results[0]
+            df = get_cached_or_fetch_as_of(ticker, scan_date, fetch_ohlcv)
+            if df is None or df.empty:
+                continue
 
-    if "label_results" in st.session_state and st.session_state["label_results"]:
-        results = st.session_state["label_results"]
-        idx = st.session_state.get("label_idx", 0)
-        df = st.session_state.get("label_df")
-
-        if idx < len(results):
-            result, composite, indicators = results[idx]
-
-            st.markdown(f"**Setup {idx + 1} of {len(results)}**: {result.ticker} — {result.pattern_name} (Score: {composite:.1f})")
-
-            if df is not None:
-                fig = create_pattern_chart(df, result, indicators)
-                st.pyplot(fig)
-                plt.close(fig)
-
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                if st.button("Good Setup", type="primary", use_container_width=True):
-                    features = extract_features(result, indicators)
-                    # Save chart
-                    charts_dir = Path(__file__).resolve().parents[2] / "data" / "charts"
-                    charts_dir.mkdir(parents=True, exist_ok=True)
-                    chart_path = str(charts_dir / f"{result.ticker}_{result.pattern_name}_{result.detected_date}.png")
-                    if df is not None:
-                        fig = create_pattern_chart(df, result, indicators, output_path=chart_path)
-                        plt.close(fig)
-
-                    save_label(
-                        ticker=result.ticker,
-                        pattern_name=result.pattern_name,
-                        scan_date=st.session_state["label_scan_date"],
-                        label=1,
-                        features=features,
-                        chart_path=chart_path,
-                        score=composite,
-                    )
-                    st.success("Labeled as GOOD")
-                    st.session_state["label_idx"] = idx + 1
-                    st.rerun()
-
-            with col2:
-                if st.button("Bad Setup", type="secondary", use_container_width=True):
-                    features = extract_features(result, indicators)
-                    save_label(
-                        ticker=result.ticker,
-                        pattern_name=result.pattern_name,
-                        scan_date=st.session_state["label_scan_date"],
-                        label=0,
-                        features=features,
-                        score=composite,
-                    )
-                    st.warning("Labeled as BAD")
-                    st.session_state["label_idx"] = idx + 1
-                    st.rerun()
-
-            with col3:
-                if st.button("Skip", use_container_width=True):
-                    st.session_state["label_idx"] = idx + 1
-                    st.rerun()
-
-            with st.expander("Details"):
-                st.json(result.metadata)
-        else:
-            st.info("All setups labeled! Scan another ticker or train the model.")
-
-# ─── Tab 2: Review labels ───
-with tab2:
-    st.subheader("Labeled Data")
-    counts = get_label_counts()
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Good", counts["good"])
-    c2.metric("Bad", counts["bad"])
-    c3.metric("Total", counts["total"])
-
-    labels = get_all_labels()
-    if labels:
-        table_data = []
-        for l in labels:
-            table_data.append({
-                "ID": l["id"],
-                "Ticker": l["ticker"],
-                "Pattern": l["pattern_name"],
-                "Scan Date": l["scan_date"],
-                "Label": "Good" if l["label"] == 1 else "Bad",
-                "Score": f"{l['score']:.1f}" if l["score"] else "-",
-                "Created": l["created_at"][:16],
+            batch.append({
+                "ticker": ticker,
+                "scan_date": scan_date,
+                "result": result,
+                "composite": composite,
+                "indicators": indicators,
+                "df": df,
             })
-        st.dataframe(pd.DataFrame(table_data), use_container_width=True, hide_index=True)
+        except Exception:
+            continue
 
-        st.markdown("---")
-        col1, col2 = st.columns(2)
-        with col1:
-            flip_id = st.number_input("Flip label ID", min_value=1, step=1, key="flip_id")
-            if st.button("Flip Label"):
-                flip_label(int(flip_id))
-                st.success(f"Flipped label {flip_id}")
-                st.rerun()
-        with col2:
-            del_id = st.number_input("Delete label ID", min_value=1, step=1, key="del_id")
-            if st.button("Delete Label"):
-                delete_label(int(del_id))
-                st.success(f"Deleted label {del_id}")
-                st.rerun()
+    return batch
 
-# ─── Tab 3: Train model ───
-with tab3:
-    st.subheader("Train Preference Model")
-    counts = get_label_counts()
 
-    if counts["total"] < 30:
-        st.warning(f"Need at least 30 labels to train. Currently have {counts['total']}.")
-    else:
-        st.info(f"{counts['total']} labels available ({counts['good']} good, {counts['bad']} bad)")
+# Sidebar
+counts = get_label_counts()
+st.sidebar.metric("Charts Rated", counts["total"])
+if counts["total"] > 0:
+    st.sidebar.metric("Avg Rating", f"{counts['avg_rating']}/5")
+st.sidebar.markdown("---")
 
-    if st.button("Train Model", type="primary", disabled=counts["total"] < 30):
+if counts["total"] >= 30:
+    st.sidebar.success("Enough data to train!")
+    if st.sidebar.button("Train Model", type="primary"):
         with st.spinner("Training..."):
             model = PreferenceModel()
             metrics = model.train()
-
         if "error" in metrics:
-            st.error(metrics["error"])
+            st.sidebar.error(metrics["error"])
         else:
-            st.success(f"Model trained! Accuracy: {metrics['accuracy']}% (+/- {metrics['accuracy_std']}%)")
-            st.metric("Samples Used", metrics["n_samples"])
+            st.sidebar.success(f"Model trained! R2: {metrics['r2_score']:.3f}")
+else:
+    st.sidebar.info(f"Need {30 - counts['total']} more ratings to train")
 
-            # Feature importance chart
-            importance = metrics.get("feature_importance", {})
-            if importance:
-                fig, ax = plt.subplots(figsize=(10, 6))
-                names = list(importance.keys())[:15]
-                values = [importance[n] for n in names]
-                ax.barh(names[::-1], values[::-1], color="#58a6ff")
-                ax.set_xlabel("Importance")
-                ax.set_title("Top Feature Importances")
-                st.pyplot(fig)
-                plt.close(fig)
-
-    # Model status
-    st.markdown("---")
-    model = PreferenceModel()
-    if model.load():
-        st.success(f"Trained model loaded ({model.metrics.get('n_samples', '?')} samples, {model.metrics.get('accuracy', '?')}% accuracy)")
+# Load or generate batch
+if st.button("Load Charts to Rate", type="primary", use_container_width=True):
+    with st.spinner("Finding setups across random tickers and dates..."):
+        batch = _generate_batch(20)
+    if batch:
+        st.session_state["rate_batch"] = batch
+        st.session_state["rate_idx"] = 0
+        st.success(f"Found {len(batch)} charts to rate!")
     else:
-        st.info("No trained model found yet.")
+        st.error("Couldn't find any setups. Try again.")
+
+# ─── Show current chart ───
+
+if "rate_batch" in st.session_state and st.session_state["rate_batch"]:
+    batch = st.session_state["rate_batch"]
+    idx = st.session_state.get("rate_idx", 0)
+
+    if idx < len(batch):
+        item = batch[idx]
+        result = item["result"]
+        indicators = item["indicators"]
+        df = item["df"]
+
+        st.markdown(f"**Chart {idx + 1} of {len(batch)}**  |  {result.ticker} - {result.pattern_name}  |  {item['scan_date']}")
+
+        # Render chart
+        fig = create_pattern_chart(df, result, indicators)
+        st.pyplot(fig)
+        plt.close(fig)
+
+        # Star rating — 5 buttons in a row
+        st.markdown("### How tradeable is this setup?")
+        cols = st.columns(5)
+        for star in range(1, 6):
+            with cols[star - 1]:
+                label = f"{'*' * star} {star}"
+                if st.button(label, key=f"star_{idx}_{star}", use_container_width=True):
+                    features = extract_features(result, indicators)
+                    save_label(
+                        ticker=result.ticker,
+                        pattern_name=result.pattern_name,
+                        scan_date=str(item["scan_date"]),
+                        label=star,
+                        features=features,
+                        score=item["composite"],
+                    )
+                    st.session_state["rate_idx"] = idx + 1
+                    st.rerun()
+
+        # Skip button
+        if st.button("Skip (don't rate)", use_container_width=True):
+            st.session_state["rate_idx"] = idx + 1
+            st.rerun()
+    else:
+        st.success(f"Done! Rated all {len(batch)} charts. Click 'Load Charts' for more.")
+        st.session_state.pop("rate_batch", None)
+        st.session_state.pop("rate_idx", None)

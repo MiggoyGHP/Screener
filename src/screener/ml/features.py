@@ -32,6 +32,8 @@ FEATURE_NAMES = [
     "trendline_broken",
     "stage_transition",
     "volume_confirmed",
+    # MACD
+    "macd_corrected",
 ]
 
 
@@ -82,5 +84,8 @@ def extract_features(
     features["trendline_broken"] = float(meta.get("trendline_broken", False))
     features["stage_transition"] = float(meta.get("stage_transition", False))
     features["volume_confirmed"] = float(meta.get("volume_confirmed", False))
+
+    # MACD
+    features["macd_corrected"] = float(indicators.get("macd_corrected", False))
 
     return features
