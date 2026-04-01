@@ -16,8 +16,23 @@ import pandas as pd
 from screener.config import load_config
 from screener.data.cache import get_cached_or_fetch_as_of
 from screener.data.provider import fetch_ohlcv
-from screener.data.universe import get_sp500_tickers
 from screener.pipeline.screener import scan_single
+
+
+# Hardcoded universe — avoids Wikipedia scraping which fails on Streamlit Cloud
+TICKERS = [
+    "AAPL", "MSFT", "NVDA", "AMZN", "META", "GOOG", "TSLA", "NFLX", "AMD", "CRM",
+    "AVGO", "COST", "ADBE", "PEP", "CSCO", "INTC", "QCOM", "TXN", "AMGN", "INTU",
+    "ISRG", "AMAT", "LRCX", "MU", "KLAC", "SNPS", "CDNS", "MRVL", "PANW", "CRWD",
+    "ABNB", "DASH", "COIN", "SQ", "SHOP", "SNOW", "DDOG", "ZS", "NET", "TEAM",
+    "JPM", "V", "MA", "BAC", "WFC", "GS", "MS", "BLK", "SCHW", "AXP",
+    "UNH", "JNJ", "LLY", "PFE", "ABBV", "MRK", "TMO", "DHR", "ABT", "BMY",
+    "HD", "LOW", "TJX", "NKE", "SBUX", "MCD", "CMG", "YUM", "DPZ", "LULU",
+    "DIS", "CMCSA", "T", "VZ", "TMUS", "CHTR", "EA", "TTWO", "RBLX", "SPOT",
+    "XOM", "CVX", "COP", "SLB", "EOG", "PSX", "VLO", "OXY", "DVN", "HAL",
+    "CAT", "DE", "GE", "HON", "RTX", "LMT", "BA", "UPS", "FDX", "UNP",
+    "PLTR", "UBER", "LYFT", "RIVN", "LCID", "ENPH", "FSLR", "VST", "CEG", "SO",
+]
 from screener.visualization.charts import create_pattern_chart
 from screener.ml.labels import save_label, get_all_labels, get_label_counts
 from screener.ml.features import extract_features
@@ -32,17 +47,13 @@ st.markdown("Charts are shown one at a time. Rate each one 1-5 stars, then move 
 def _generate_batch(n: int = 20):
     """Scan random tickers on random historical dates to build a batch of charts."""
     config = load_config()
-    tickers = get_sp500_tickers()
-    if not tickers:
-        return []
-
     batch = []
     attempts = 0
-    max_attempts = n * 8
+    max_attempts = n * 10
 
     while len(batch) < n and attempts < max_attempts:
         attempts += 1
-        ticker = random.choice(tickers)
+        ticker = random.choice(TICKERS)
         # Random date between 2015 and 2025
         days_back = random.randint(100, 3650)
         scan_date = date.today() - timedelta(days=days_back)
