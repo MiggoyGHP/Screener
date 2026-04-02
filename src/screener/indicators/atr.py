@@ -25,6 +25,16 @@ def atr_percent(df: pd.DataFrame, period: int = 14) -> pd.Series:
     return atr(df, period) / df["Close"] * 100
 
 
+def check_atr_declining(indicators: dict) -> bool:
+    """ATR over last 10 bars < ATR over prior 20 bars — volatility contracting."""
+    atr_14 = indicators.get("atr_14")
+    if atr_14 is None or len(atr_14.dropna()) < 30:
+        return False
+    recent = float(atr_14.iloc[-10:].mean())
+    prior = float(atr_14.iloc[-30:-10].mean())
+    return prior > 0 and recent < prior
+
+
 def compute_atr_indicators(df: pd.DataFrame) -> dict[str, pd.Series]:
     return {
         "atr_14": atr(df, 14),

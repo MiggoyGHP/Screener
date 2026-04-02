@@ -131,6 +131,17 @@ class ResetDetector(PatternDetector):
         elif pullback_depth < 15:
             score += 5
 
+        # Signal quality bonuses
+        if indicators.get("ema_ordered"):
+            score += 15
+        macd_setup = indicators.get("macd_setup", {})
+        if macd_setup.get("near_zero"):
+            score += 10
+        if macd_setup.get("converging"):
+            score += 10
+        if indicators.get("atr_declining"):
+            score += 10
+
         return PatternResult(
             pattern_name="Reset",
             ticker=ticker,
@@ -144,6 +155,10 @@ class ResetDetector(PatternDetector):
                 "bounce_volume": bounce_volume,
                 "bouncing": bouncing,
                 "bars_after_touch": abs(best_touch_day),
+                "ema_ordered": indicators.get("ema_ordered"),
+                "macd_near_zero": macd_setup.get("near_zero"),
+                "macd_converging": macd_setup.get("converging"),
+                "atr_declining": indicators.get("atr_declining"),
             },
             annotations=[
                 {"type": "hline", "price": swing_high, "label": "Swing High"},

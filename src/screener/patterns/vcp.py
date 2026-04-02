@@ -146,6 +146,17 @@ class VCPDetector(PatternDetector):
         rs_rank = indicators.get("rs_rank", 50)
         score += (rs_rank / 100) * 10
 
+        # Signal quality bonuses
+        if indicators.get("ema_ordered"):
+            score += 15
+        macd_setup = indicators.get("macd_setup", {})
+        if macd_setup.get("near_zero"):
+            score += 10
+        if macd_setup.get("converging"):
+            score += 10
+        if indicators.get("atr_declining"):
+            score += 10
+
         return PatternResult(
             pattern_name="VCP",
             ticker=ticker,
@@ -159,6 +170,10 @@ class VCPDetector(PatternDetector):
                 "volume_declining": volume_declining,
                 "near_pivot": near_pivot,
                 "distance_to_pivot_pct": round(distance_to_pivot * 100, 2),
+                "ema_ordered": indicators.get("ema_ordered"),
+                "macd_near_zero": macd_setup.get("near_zero"),
+                "macd_converging": macd_setup.get("converging"),
+                "atr_declining": indicators.get("atr_declining"),
             },
             annotations=[
                 {"type": "hline", "price": pivot_price, "label": "Pivot"},

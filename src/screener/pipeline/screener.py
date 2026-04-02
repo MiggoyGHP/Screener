@@ -9,14 +9,14 @@ from tqdm import tqdm
 from screener.config import ScreenerConfig, load_config
 from screener.data.cache import get_cached_or_fetch, get_cached_or_fetch_as_of
 from screener.data.provider import fetch_ohlcv, fetch_spy
-from screener.indicators.moving_averages import compute_all_mas, compute_macd, is_macd_corrected
+from screener.indicators.moving_averages import compute_all_mas, compute_macd, is_macd_corrected, check_ema_ordering, check_macd_setup
 from screener.indicators.relative_strength import (
     compute_rs_indicators,
     compute_rs_rankings,
     compute_rs_score,
 )
 from screener.indicators.volume import compute_volume_indicators
-from screener.indicators.atr import compute_atr_indicators
+from screener.indicators.atr import compute_atr_indicators, check_atr_declining
 from screener.patterns.base import PatternResult
 from screener.patterns.vcp import VCPDetector
 from screener.patterns.reversal import ReversalDetector
@@ -46,6 +46,11 @@ def compute_indicators(
     indicators.update(rs)
     indicators["rs_rank"] = rs_rank
     indicators["current_price"] = float(df["Close"].iloc[-1])
+
+    # Signal quality checks
+    indicators["ema_ordered"] = check_ema_ordering(indicators)
+    indicators["macd_setup"] = check_macd_setup(indicators, indicators["current_price"])
+    indicators["atr_declining"] = check_atr_declining(indicators)
     return indicators
 
 

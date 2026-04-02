@@ -115,6 +115,20 @@ def _format_metadata(result: PatternResult) -> str:
         lines.append(f"Trendline broken: {meta.get('trendline_broken', '?')}")
         lines.append(f"Stage transition: {meta.get('stage_transition', '?')}")
 
+    # Signal quality flags (VCP, Reset, Coil only)
+    if result.pattern_name in ("VCP", "Reset", "Coil"):
+        signals = []
+        if meta.get("ema_ordered"):
+            signals.append("EMA aligned")
+        if meta.get("macd_near_zero"):
+            signals.append("MACD@0")
+        if meta.get("macd_converging"):
+            signals.append("MACD conv")
+        if meta.get("atr_declining"):
+            signals.append("ATR quiet")
+        if signals:
+            lines.append(f"Signals: {', '.join(signals)}")
+
     return "\n".join(lines)
 
 

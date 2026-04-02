@@ -125,6 +125,17 @@ class CoilDetector(PatternDetector):
             if float(rs_line.iloc[-1]) > float(rs_line.iloc[-box_days]):
                 score += 10
 
+        # Signal quality bonuses
+        if indicators.get("ema_ordered"):
+            score += 15
+        macd_setup = indicators.get("macd_setup", {})
+        if macd_setup.get("near_zero"):
+            score += 10
+        if macd_setup.get("converging"):
+            score += 10
+        if indicators.get("atr_declining"):
+            score += 10
+
         if score < 30:
             return None
 
@@ -144,6 +155,10 @@ class CoilDetector(PatternDetector):
                 "volume_dry": volume_dry,
                 "in_uptrend": in_uptrend,
                 "advance_into_box_pct": round(advance_pct, 1),
+                "ema_ordered": indicators.get("ema_ordered"),
+                "macd_near_zero": macd_setup.get("near_zero"),
+                "macd_converging": macd_setup.get("converging"),
+                "atr_declining": indicators.get("atr_declining"),
             },
             annotations=[
                 {"type": "hline", "price": box_high, "label": "Box Top"},
